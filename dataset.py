@@ -20,7 +20,7 @@ from nuscenes.prediction.input_representation.interface import InputRepresentati
 from nuscenes.prediction.input_representation.combinators import Rasterizer
 
 
-class NuSceneDataset_CoverNet(Dataset):
+class NuSceneDataset(Dataset):
     def __init__(self, train_mode, config_file_name, layers_list=None, color_list=None, verbose=True):
         super().__init__()
         parser = Json_Parser(config_file_name)
@@ -32,9 +32,10 @@ class NuSceneDataset_CoverNet(Dataset):
         # self.intersection_use= config['DATASET']['intersection_use']        # only available for mini_dataset
         self.nuscenes = NuScenes(config['DATASET']['dataset_str'], dataroot=self.dataroot, verbose=self.verbose)
         self.helper = PredictHelper(self.nuscenes)
-
+        self.num_classes = config['LEARNING']['num_classes']
         self.set = config['DATASET']['set']
         self.train_mode = train_mode
+        self.thre = config['LEARNING']['thre']
         if self.set == 'train':
             self.mode = 'train'
             self.train_set = get_prediction_challenge_split("train", dataroot=self.dataroot)
@@ -100,22 +101,15 @@ class NuSceneDataset_CoverNet(Dataset):
             return len(self.val_set)
 
 
-    # def get_label(self, trajectory_set, ground_truth):
-    #     return self.mean_pointwise_l2_distance(trajectory_set, ground_truth)
+    def get_label(self, cur_yaw, future_yaw):
+        thre = np.pi / self.num_classes
+        label = np.zeros(self.num_classes)
+        diff = future_yaw - cur_yaw
+        num1 = diff // (thre/2) 
+        num2 = diff % (thre/2)
+        return label
 
 
-
-    # def mean_pointwise_l2_distance(self, lattice: torch.Tensor, ground_truth: torch.Tensor) -> torch.Tensor:
-    #     """
-    #     Computes the index of the closest trajectory in the lattice as measured by l1 distance.
-    #     :param lattice: Lattice of pre-generated trajectories. Shape [num_modes, n_timesteps, state_dim]
-    #     :param ground_truth: Ground truth trajectory of agent. Shape [1, n_timesteps, state_dim].
-    #     :return: Index of closest mode in the lattice.
-    #     """
-    #     stacked_ground_truth = ground_truth.repeat(lattice.shape[0], 1, 1)
-    #     output = torch.pow(lattice - stacked_ground_truth, 2).sum(dim=2).sqrt().mean(dim=1).argmin() 
-
-    #     return output
 
     def __getitem__(self, idx):
         if self.train_mode:
@@ -126,7 +120,6 @@ class NuSceneDataset_CoverNet(Dataset):
         #################################### State processing ####################################
         ego_instance_token, ego_sample_token = self.dataset[idx].split('_')
         ego_annotation = self.helper.get_sample_annotation(ego_instance_token, ego_sample_token)
-
         ego_pose = np.array(utils.get_pose_from_annot(ego_annotation))
         ego_vel = self.helper.get_velocity_for_agent(ego_instance_token, ego_sample_token)
         ego_accel = self.helper.get_acceleration_for_agent(ego_instance_token, ego_sample_token)
@@ -139,15 +132,17 @@ class NuSceneDataset_CoverNet(Dataset):
         for _ in range(extra):
             history = np.row_stack((history[0],history))
             
-        ## GLOBAL history
-        future = self.helper.get_future_for_agent(instance_token=ego_instance_token, sample_token=ego_sample_token, 
+        future_position = self.helper.get_future_for_agent(instance_token=ego_instance_token, sample_token=ego_sample_token, 
                                             seconds=int(self.num_future_hist/2), in_agent_frame=True, just_xy=True)
-        num_future_mask = len(future)
+        num_future_mask = len(future_position)
 
-
+        future = self.helper.get_future_for_agent(instance_token=ego_instance_token, sample_token=ego_sample_token, 
+                                            seconds=int(self.num_future_hist/2), in_agent_frame=False)
+        final_instance_token, final_sample_token = future[-1]['instance_token'],  future[-1]['sample_token']                                   
+        final_annotation = self.helper.get_sample_annotation(final_instance_token, final_sample_token)                                    
+        future_pose = np.array(utils.get_pose_from_annot(final_annotation))
         ## Get label
-        # gt_tensor = torch.Tensor(future).unsqueeze(0)
-        # label = self.get_label(self.trajectories_set, gt_tensor)
+        label = self.get_label(ego_pose[-1], future_pose[-1])
         # print(self.trajectories_set.size())
         # print(label)
         #################################### Image processing ####################################
@@ -164,9 +159,9 @@ class NuSceneDataset_CoverNet(Dataset):
                 'ego_cur_pos'          : ego_pose,                     # Type : np.array([global_x,globa_y,global_yaw])                        | Shape : (3, )
                 'ego_state'            : ego_states,                   # Type : np.array([[vel,accel,yaw_rate]]) --> local(ego's coord)   |   Unit : [m/s, m/s^2, rad/sec]
                 'history_positions': history,    
-                'target_positions' : future,                       # Type : np.array([local_x, local_y, local_yaw]) .. ground truth data
+                'target_positions' : future_position,                       # Type : np.array([local_x, local_y, local_yaw]) .. ground truth data
                 'num_future_mask'      : num_future_mask,              # a number for masking future history
-                # 'label'                : label,                        # calculated label data from preprocessed_trajectory_set using ground truth data
+                'label'                : label,                        # calculated label data from preprocessed_trajectory_set using ground truth data
                 }
 
     
@@ -177,7 +172,7 @@ if __name__ == '__main__':
     # print(train_dataset.__len__())
 
     # val dataset
-    val_dataset = NuSceneDataset_CoverNet(train_mode=True, config_file_name='./covernet_config.json', verbose=True)
+    val_dataset = NuSceneDataset(train_mode=True, config_file_name='./config.json', verbose=True)
     # trajectories_set =torch.Tensor(pickle.load(open("./trajectory-sets/epsilon_8.pkl", 'rb')))
 
     print(len(val_dataset))

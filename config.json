@@ -6,18 +6,10 @@
     },
 
     "LEARNING" : {
-        "device" : "cpu",
-        "lr" : 1e-4,
-        "momentum" : 0.9,
-        "n_epochs" : 50,
-        "num_modes" : 64,
+        "device" : "cuda:0",
+        "num_classes" : 64,
         "batch_size" : 2,
-        "val_batch_size" : 1,
-        "num_val_data" : 4,
-        "print_size" : 1,
-        "weight_path" : "./resnet50-19c8e357.pth",
-        "trajectory_set_path" : "./trajectory-sets/epsilon_2.pkl",
-        "model_save_path" : "./result/model"
+        "thre" : 0.15
     },
 
     "HISTORY" : {
