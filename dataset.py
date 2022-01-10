@@ -35,7 +35,7 @@ class NuSceneDataset(Dataset):
         self.num_classes = config['LEARNING']['num_classes']
         self.set = config['DATASET']['set']
         self.train_mode = train_mode
-        self.thre = config['LEARNING']['thre']
+        # self.thre = config['LEARNING']['thre']
         if self.set == 'train':
             self.mode = 'train'
             self.train_set = get_prediction_challenge_split("train", dataroot=self.dataroot)
@@ -84,7 +84,7 @@ class NuSceneDataset(Dataset):
 
         self.num_max_agent = config['PREPROCESS']['num_max_agent']
         
-        self.traj_set_path = config['LEARNING']['trajectory_set_path']
+        # self.traj_set_path = config['LEARNING']['trajectory_set_path']
         # self.trajectories_set =torch.Tensor(pickle.load(open(self.traj_set_path, 'rb')))
 
         if self.save_imgs:
@@ -102,11 +102,12 @@ class NuSceneDataset(Dataset):
 
 
     def get_label(self, cur_yaw, future_yaw):
-        thre = np.pi / self.num_classes
+        phi = np.pi / self.num_classes
         label = np.zeros(self.num_classes)
         diff = future_yaw - cur_yaw
-        num1 = diff // (thre/2) 
-        num2 = diff % (thre/2)
+        for k in range(self.num_classes):
+            if np.pi/2-(k+1)*phi<diff<np.pi/2-k*phi:
+                label[k]=1
         return label
 
 
@@ -137,7 +138,7 @@ class NuSceneDataset(Dataset):
         num_future_mask = len(future_position)
 
         future = self.helper.get_future_for_agent(instance_token=ego_instance_token, sample_token=ego_sample_token, 
-                                            seconds=int(self.num_future_hist/2), in_agent_frame=False)
+                                            seconds=int(self.num_future_hist/2), in_agent_frame=False,just_xy=False)
         final_instance_token, final_sample_token = future[-1]['instance_token'],  future[-1]['sample_token']                                   
         final_annotation = self.helper.get_sample_annotation(final_instance_token, final_sample_token)                                    
         future_pose = np.array(utils.get_pose_from_annot(final_annotation))

@@ -7,9 +7,8 @@
 
     "LEARNING" : {
         "device" : "cuda:0",
-        "num_classes" : 64,
-        "batch_size" : 2,
-        "thre" : 0.15
+        "num_classes" : 5,
+        "batch_size" : 2
     },
 
     "HISTORY" : {
