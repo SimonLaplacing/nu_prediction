@@ -108,6 +108,7 @@ class NuSceneDataset(Dataset):
         for k in range(self.num_classes):
             if np.pi/2-(k+1)*phi<diff<np.pi/2-k*phi:
                 label[k]=1
+        del phi, diff
         return label
 
 
@@ -135,7 +136,7 @@ class NuSceneDataset(Dataset):
             
         future_position = self.helper.get_future_for_agent(instance_token=ego_instance_token, sample_token=ego_sample_token, 
                                             seconds=int(self.num_future_hist/2), in_agent_frame=True, just_xy=True)
-        num_future_mask = len(future_position)
+        # num_future_mask = len(future_position)
 
         future = self.helper.get_future_for_agent(instance_token=ego_instance_token, sample_token=ego_sample_token, 
                                             seconds=int(self.num_future_hist/2), in_agent_frame=False,just_xy=False)
@@ -155,68 +156,69 @@ class NuSceneDataset(Dataset):
         #     plt.show()
 
         # img = torch.Tensor(img).permute(2,0,1).to(device=self.device)
+        del ego_annotation, ego_pose, extra, future, final_instance_token, final_sample_token, final_annotation
 
 
         return {'image'                : img,                          # Type : torch.Tensor
-                'ego_cur_pos'          : ego_pose,                     # Type : np.array([global_x,globa_y,global_yaw])                        | Shape : (3, )
+                # 'ego_cur_pos'          : ego_pose,                     # Type : np.array([global_x,globa_y,global_yaw])                        | Shape : (3, )
                 # 'ego_state'            : ego_states,                   # Type : np.array([[vel,accel,yaw_rate]]) --> local(ego's coord)   |   Unit : [m/s, m/s^2, rad/sec]
                 'history_positions'    : history,    
                 'target_positions'     : future_position,                       # Type : np.array([local_x, local_y, local_yaw]) .. ground truth data
-                'num_future_mask'      : num_future_mask,              # a number for masking future history
+                # 'num_future_mask'      : num_future_mask,              # a number for masking future history
                 'label'                : label,                        # calculated label data from preprocessed_trajectory_set using ground truth data
                 'instance'             : ego_instance_token,
                 'sample'               : ego_sample_token
                 }
 
     
-if __name__ == '__main__':
-    ## train dataset
-    # train_dataset = NuSceneDataset_CoverNet(train_mode=True, config_file_name='./covernet_config.json', verbose=True)
-    # print(len(train_dataset))
-    # print(train_dataset.__len__())
+# if __name__ == '__main__':
+#     ## train dataset
+#     # train_dataset = NuSceneDataset_CoverNet(train_mode=True, config_file_name='./covernet_config.json', verbose=True)
+#     # print(len(train_dataset))
+#     # print(train_dataset.__len__())
 
-    # val dataset
-    val_dataset = NuSceneDataset(train_mode=True, config_file_name='./config.json', verbose=True)
-    # trajectories_set =torch.Tensor(pickle.load(open("./trajectory-sets/epsilon_8.pkl", 'rb')))
+#     # val dataset
+#     val_dataset = NuSceneDataset(train_mode=True, config_file_name='./config.json', verbose=True)
+#     # trajectories_set =torch.Tensor(pickle.load(open("./trajectory-sets/epsilon_8.pkl", 'rb')))
 
-    print(len(val_dataset))
-    for i in range(val_dataset.__len__()):
-        d= val_dataset.__getitem__(i)
+#     print(len(val_dataset))
+#     for i in range(val_dataset.__len__()):
+#         d= val_dataset.__getitem__(i)
 
-    # val_dataset.__getitem__(0)
+#     # val_dataset.__getitem__(0)
 
-        # for plotting
-        xs = []
-        ys = []
-        for j in range(len(d['future_local_ego_pos'])):
-            xs.append(d['future_local_ego_pos'][j][0])
-            ys.append(d['future_local_ego_pos'][j][1])
-        xs = np.array(xs)
-        ys = np.array(ys)
+#         # for plotting
+#         xs = []
+#         ys = []
+#         for j in range(len(d['future_local_ego_pos'])):
+#             xs.append(d['future_local_ego_pos'][j][0])
+#             ys.append(d['future_local_ego_pos'][j][1])
+#         xs = np.array(xs)
+#         ys = np.array(ys)
 
-        xss = []
-        yss = []
-        # label = trajectories_set[d['label'],:,:]
-        # for j in range(len(label)):
-        #     xss.append(label[j][0])
-        #     yss.append(label[j][1])
-        xss = np.array(xss)
-        yss = np.array(yss)
+#         xss = []
+#         yss = []
+#         # label = trajectories_set[d['label'],:,:]
+#         # for j in range(len(label)):
+#         #     xss.append(label[j][0])
+#         #     yss.append(label[j][1])
+#         xss = np.array(xss)
+#         yss = np.array(yss)
 
 
-        fig, ax = plt.subplots(1,3, figsize = (10,10))
-        # Rasterized Image
-        ax[0].imshow(d['img'])
-        ax[0].set_title("Rasterized Image")
-        # Real ego future history
-        ax[1].set_title("Real ego future history")
-        ax[1].plot(xs, ys, 'bo')
-        ax[1].set_aspect('equal')
-        ax[1].set_xlim(-30, 30)
-        ax[1].set_ylim(-10, 50)
-        # Label of traj_set
-        ax[2].plot(xss,yss,'yo')
-        ax[2].set_aspect('equal')
-        ax[2].set_xlim(-30,30)
-        ax[2].set_ylim(-10,50)
+#         fig, ax = plt.subplots(1,3, figsize = (10,10))
+#         # Rasterized Image
+#         ax[0].imshow(d['img'])
+#         ax[0].set_title("Rasterized Image")
+#         # Real ego future history
+#         ax[1].set_title("Real ego future history")
+#         ax[1].plot(xs, ys, 'bo')
+#         ax[1].set_aspect('equal')
+#         ax[1].set_xlim(-30, 30)
+#         ax[1].set_ylim(-10, 50)
+#         # Label of traj_set
+#         ax[2].plot(xss,yss,'yo')
+#         ax[2].set_aspect('equal')
+#         ax[2].set_xlim(-30,30)
+#         ax[2].set_ylim(-10,50)
         # ax[2].set_title("{}th anchor".format(d['label']))
