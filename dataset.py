@@ -136,6 +136,9 @@ class NuSceneDataset(Dataset):
             
         future_position = self.helper.get_future_for_agent(instance_token=ego_instance_token, sample_token=ego_sample_token, 
                                             seconds=int(self.num_future_hist/2), in_agent_frame=True, just_xy=True)
+        extra1 = self.num_future_hist - len(future_position)
+        for _ in range(extra):
+            future_position = np.row_stack((future_position,future_position[-1]))
         # num_future_mask = len(future_position)
 
         future = self.helper.get_future_for_agent(instance_token=ego_instance_token, sample_token=ego_sample_token, 
@@ -156,7 +159,7 @@ class NuSceneDataset(Dataset):
         #     plt.show()
 
         # img = torch.Tensor(img).permute(2,0,1).to(device=self.device)
-        del ego_annotation, ego_pose, extra, future, final_instance_token, final_sample_token, final_annotation
+        del ego_annotation, ego_pose, extra, future, final_instance_token, final_sample_token, final_annotation, extra1, 
 
 
         return {'image'                : img,                          # Type : torch.Tensor
