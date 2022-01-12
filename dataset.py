@@ -21,7 +21,7 @@ from nuscenes.prediction.input_representation.combinators import Rasterizer
 
 
 class NuSceneDataset(Dataset):
-    def __init__(self, train_mode, config_file_name, layers_list=None, color_list=None, verbose=True):
+    def __init__(self,train_mode, config_file_name, layers_list=None, color_list=None, verbose=True):
         super().__init__()
         parser = Json_Parser(config_file_name)
         config = parser.load_parser()
@@ -35,13 +35,13 @@ class NuSceneDataset(Dataset):
         self.num_classes = config['LEARNING']['num_classes']
         self.set = config['DATASET']['set']
         self.train_mode = train_mode
-        # self.thre = config['LEARNING']['thre']
+
         if self.set == 'train':
-            self.mode = 'train'
+            # self.mode = 'train'
             self.train_set = get_prediction_challenge_split("train", dataroot=self.dataroot)
-            self.val_set = get_prediction_challenge_split("train_val", dataroot=self.dataroot)
+            self.val_set = get_prediction_challenge_split("val", dataroot=self.dataroot)
         else:            
-            self.mode = 'mini'
+            # self.mode = 'mini'
             self.train_set = get_prediction_challenge_split("mini_train", dataroot=self.dataroot)
             self.val_set = get_prediction_challenge_split("mini_val", dataroot=self.dataroot)
 
@@ -79,19 +79,19 @@ class NuSceneDataset(Dataset):
                                         agent=self.agent_layer, 
                                         combinator=Rasterizer())     
 
-        self.show_imgs = config['PREPROCESS']['show_imgs']
-        self.save_imgs = config['PREPROCESS']['save_imgs']
+        # self.show_imgs = config['PREPROCESS']['show_imgs']
+        # self.save_imgs = config['PREPROCESS']['save_imgs']
 
-        self.num_max_agent = config['PREPROCESS']['num_max_agent']
+        # self.num_max_agent = config['PREPROCESS']['num_max_agent']
         
         # self.traj_set_path = config['LEARNING']['trajectory_set_path']
         # self.trajectories_set =torch.Tensor(pickle.load(open(self.traj_set_path, 'rb')))
 
-        if self.save_imgs:
-            if self.train_mode:
-                utils.save_imgs(self, self.train_set, self.set + 'train', self.input_repr)
-            else:
-                utils.save_imgs(self, self.val_set, self.set + 'val', self.input_repr)
+        # if self.save_imgs:
+        #     if self.train_mode:
+        #         utils.save_imgs(self, self.train_set, self.set + 'train', self.input_repr)
+        #     else:
+        #         utils.save_imgs(self, self.val_set, self.set + 'val', self.input_repr)
         
   
     def __len__(self):
@@ -122,11 +122,11 @@ class NuSceneDataset(Dataset):
         ego_instance_token, ego_sample_token = self.dataset[idx].split('_')
         ego_annotation = self.helper.get_sample_annotation(ego_instance_token, ego_sample_token)
         ego_pose = np.array(utils.get_pose_from_annot(ego_annotation))
-        ego_vel = self.helper.get_velocity_for_agent(ego_instance_token, ego_sample_token)
-        ego_accel = self.helper.get_acceleration_for_agent(ego_instance_token, ego_sample_token)
-        ego_yawrate = self.helper.get_heading_change_rate_for_agent(ego_instance_token, ego_sample_token)
-        [ego_vel, ego_accel, ego_yawrate] = utils.data_filter([ego_vel, ego_accel, ego_yawrate])                # Filter unresonable data (make nan to zero)
-        ego_states = np.array([[ego_vel, ego_accel, ego_yawrate]])
+        # ego_vel = self.helper.get_velocity_for_agent(ego_instance_token, ego_sample_token)
+        # ego_accel = self.helper.get_acceleration_for_agent(ego_instance_token, ego_sample_token)
+        # ego_yawrate = self.helper.get_heading_change_rate_for_agent(ego_instance_token, ego_sample_token)
+        # [ego_vel, ego_accel, ego_yawrate] = utils.data_filter([ego_vel, ego_accel, ego_yawrate])                # Filter unresonable data (make nan to zero)
+        # ego_states = np.array([[ego_vel, ego_accel, ego_yawrate]])
         history = self.helper.get_past_for_agent(instance_token=ego_instance_token, sample_token=ego_sample_token, 
                                             seconds=int(self.num_past_hist/2), in_agent_frame=True, just_xy=True)
         extra = self.num_past_hist - len(history)
@@ -142,27 +142,30 @@ class NuSceneDataset(Dataset):
         final_instance_token, final_sample_token = future[-1]['instance_token'],  future[-1]['sample_token']                                   
         final_annotation = self.helper.get_sample_annotation(final_instance_token, final_sample_token)                                    
         future_pose = np.array(utils.get_pose_from_annot(final_annotation))
+
         ## Get label
         label = self.get_label(ego_pose[-1], future_pose[-1])
         # print(self.trajectories_set.size())
         # print(label)
         #################################### Image processing ####################################
         img = self.input_repr.make_input_representation(instance_token=ego_instance_token, sample_token=ego_sample_token)
-        if self.show_imgs:
-            plt.figure('input_representation')
-            plt.imshow(img)
-            plt.show()
+        # if self.show_imgs:
+        #     plt.figure('input_representation')
+        #     plt.imshow(img)
+        #     plt.show()
 
         # img = torch.Tensor(img).permute(2,0,1).to(device=self.device)
 
 
-        return {'image'                  : img,                          # Type : torch.Tensor
+        return {'image'                : img,                          # Type : torch.Tensor
                 'ego_cur_pos'          : ego_pose,                     # Type : np.array([global_x,globa_y,global_yaw])                        | Shape : (3, )
-                'ego_state'            : ego_states,                   # Type : np.array([[vel,accel,yaw_rate]]) --> local(ego's coord)   |   Unit : [m/s, m/s^2, rad/sec]
-                'history_positions': history,    
-                'target_positions' : future_position,                       # Type : np.array([local_x, local_y, local_yaw]) .. ground truth data
+                # 'ego_state'            : ego_states,                   # Type : np.array([[vel,accel,yaw_rate]]) --> local(ego's coord)   |   Unit : [m/s, m/s^2, rad/sec]
+                'history_positions'    : history,    
+                'target_positions'     : future_position,                       # Type : np.array([local_x, local_y, local_yaw]) .. ground truth data
                 'num_future_mask'      : num_future_mask,              # a number for masking future history
                 'label'                : label,                        # calculated label data from preprocessed_trajectory_set using ground truth data
+                'instance'             : ego_instance_token,
+                'sample'               : ego_sample_token
                 }
 
     

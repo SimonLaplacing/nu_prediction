@@ -1,13 +1,14 @@
 {
     "DATASET" : {
-        "set" : "mini",     
-        "dataset_str" : "v1.0-mini",
-        "dataset_path" : "E:/Downloads/nuscenes"
+        "set" : "train",     
+        "dataset_str" : "v1.0-trainval",
+        "dataset_path" : "E:/Downloads/nuscenes",
+        "load_mode"   : false
     },
 
     "LEARNING" : {
         "device" : "cuda:0",
-        "num_classes" : 5,
+        "num_classes" : 10,
         "batch_size" : 2
     },
 
